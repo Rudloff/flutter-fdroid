@@ -1,0 +1,70 @@
+#!/bin/bash
+
+bindir="$(dirname "$0")"
+basedir="$(dirname "$bindir")"
+# Check if $FLUTTER_DIR is set from environment
+if [ -z "$FLUTTER_DIR" ]; then
+    flutter_dir="${basedir}/flutter"
+else
+    flutter_dir="$FLUTTER_DIR"
+fi
+args=("$@")
+
+run_flutter() {
+    checkout_version "${v_found}"
+    echo "Running ${flutter_dir}/bin/flutter ${args[*]}"
+    "${flutter_dir}/bin/flutter" "${args[@]}"
+    exit $?
+}
+
+download_flutter() {
+    URL="https://github.com/flutter/flutter.git"
+    if [ ! -e "${flutter_dir}/.git/" ]; then
+        echo "Cloning $URL"
+        git clone $URL "${flutter_dir}"
+    fi
+
+    git -C "${flutter_dir}" fetch origin
+}
+
+checkout_version() {
+    download_flutter
+
+    git -C "${flutter_dir}" checkout -f "${v_found}"
+}
+
+find_version() {
+    echo "Looking for version matching '$flutter_constraint'"
+
+    for tag in $(git -C "${flutter_dir}" tag --sort=-committerdate); do
+        if semver -r "$flutter_constraint" "$tag"; then
+            flutter_ver=$tag
+            break
+        fi
+    done
+}
+
+download_flutter
+
+for f in {.,..}/pubspec.lock; do
+    [[ -f $f ]] || continue
+    flutter_constraint=$(yq eval .sdks.flutter $f)
+done
+
+if [[ -n $flutter_constraint ]]; then
+    find_version
+fi
+
+if [[ -n $flutter_ver ]]; then
+    v_found=$flutter_ver
+    echo "Found $v_found via pubspec.lock"
+    run_flutter
+fi
+
+v_def=$(git -C "${flutter_dir}" tag --sort=committerdate | tail -1)
+
+echo "No suitable flutter version found - defaulting to $v_def"
+v_found=$v_def
+
+run_flutter
+
