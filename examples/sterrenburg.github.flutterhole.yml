@@ -1,0 +1,48 @@
+Categories:
+  - Internet
+  - Security
+License: MIT
+SourceCode: https://github.com/sterrenburg/flutterhole
+IssueTracker: https://github.com/sterrenburg/flutterhole/issues
+Changelog: https://github.com/sterrenburg/flutterhole/releases
+
+AutoName: flutterhole
+Description: |-
+  FlutterHole is a free third party Android application for interacting with
+  your Pi-Hole® server.
+
+  Features:
+
+  * <b>Quick enable/disable</b> - toggle your Pi-hole® from your home screen or a single tap in FlutterHole.
+  * <b>Multiple configurations</b> - Easily switch between every Pi-hole® that you have access to.
+  * <b>Recently Blocked</b> - see a live view of requests that are currently being blocked.
+  * <b>Summary overview</b> - view the amount of queries sent and blocked.
+  * <b>Dark mode</b> - because we can.
+
+RepoType: git
+Repo: https://github.com/sterrenburg/flutterhole.git
+
+Builds:
+  - versionName: v5.2.3
+    versionCode: 641
+    commit: v5.2.3
+    sudo:
+      - apt-get update || apt-get update
+      - apt-get install -y node-semver
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter-fdroid@master
+    prebuild: sed -i -e 's/versionCode flutterVersionCode.toInteger()/versionCode
+      $$VERCODE$$/' -e 's/versionName flutterVersionName/versionName "$$VERSION$$"/'
+      android/app/build.gradle
+    build:
+      - $$flutter-fdroid$$/flutter-fdroid config --no-analytics
+      - $$flutter-fdroid$$/flutter-fdroid packages pub get
+      - $$flutter-fdroid$$/flutter-fdroid packages pub run flutter_launcher_icons:main
+      - $$flutter-fdroid$$/flutter-fdroid packages pub run build_runner build --delete-conflicting-outputs
+      - $$flutter-fdroid$$/flutter-fdroid build apk
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: v5.2.3
+CurrentVersionCode: 641
